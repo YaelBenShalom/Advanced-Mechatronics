@@ -22,17 +22,16 @@ def main(args):
             data.append(float(row[1])) # second column
 
     ndata = []
-    x = 400
-    
-    for i in range(len(data) - x):
-        sum = 0
-        for j in range(x):
-            sum = sum + data[i + j]
-        ndata.append(sum/x)
+    A = 0.995
+    B = round(1 - A, 3)
+    new_average = data[0]
+    for i in range(len(data)):
+        new_average = A * new_average + B*data[i]
+        ndata.append(new_average)
 
     dt = len(t)/t[-1]
     t = np.asarray(t)
-    nt = t[0 : -x]
+    nt = t[0:]
     # s = 4.0 * np.sin(2 * np.pi * 100 * t) + 0.25 * np.sin(2 * np.pi * 1000 * t) + 25
 
     Fs = dt # sample rate
@@ -58,7 +57,7 @@ def main(args):
     nY = nY[range(int(nn/2))]
 
     fig, (ax1, ax2) = plt.subplots(2, 1)
-    ax1.set_title(f'Signal vs Time (for {csv_file})')
+    ax1.set_title(f'A = {A}, B = {B}')
     ax1.plot(t,data,'b')
     ax1.plot(nt, ndata, 'r')
     ax1.set_xlabel('Time [s]')
@@ -67,7 +66,8 @@ def main(args):
     ax2.loglog(nfrq,abs(nY),'r') # plotting the filtered fft
     ax2.set_xlabel('Freq (Hz)')
     ax2.set_ylabel('|Y(freq)|')
-    
+    fig.suptitle(f'Signal vs Time (for {csv_file})')    
+
     plt.show()
 
 
