@@ -21,18 +21,19 @@ def main(args):
             t.append(float(row[0])) # leftmost column
             data.append(float(row[1])) # second column
 
-    for i in range(len(t)):
-        # print the data to verify it was read
-        print(str(t[i]) + ", " + str(data[i]))
+    # for i in range(len(t)):
+    #     # print the data to verify it was read
+    #     print(str(t[i]) + ", " + str(data[i]))
 
     sample_rate = len(t)/t[-1]
+    print("\nQuestion 3:")
     print(f"The sample rate is {sample_rate} Hz")
 
     plt.plot(t,data,'b-*')
     plt.xlabel('Time [s]')
     plt.ylabel('Signal')
     plt.title(f'Signal vs Time (for {csv_file})')
-    plt.savefig(f'images/plot')
+    # plt.savefig(f'images/plot')
     plt.show()
 
 
