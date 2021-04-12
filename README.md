@@ -7,4 +7,4 @@
 
 - **HW3** - Lab kit assembling.
 
-- **HW3** - Build and program a PIC circuit.
+- **HW4** - Build and program a PIC circuit.
