@@ -50,3 +50,5 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+/HW4/HW4.X/build/
+/HW4/HW4.X/dist/
