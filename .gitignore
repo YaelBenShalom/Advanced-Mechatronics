@@ -52,3 +52,5 @@ Mkfile.old
 dkms.conf
 /HW4/HW4.X/build/
 /HW4/HW4.X/dist/
+/HW5/UART.X/build/
+/HW5/UART.X/dist/

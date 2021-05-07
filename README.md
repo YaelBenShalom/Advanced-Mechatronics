@@ -8,3 +8,5 @@
 - **HW3** - Lab kit assembling.
 
 - **HW4** - Build and program a PIC circuit.
+
+- **HW5** - UART to USB communication.
