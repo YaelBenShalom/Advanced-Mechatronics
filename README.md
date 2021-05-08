@@ -10,3 +10,5 @@
 - **HW4** - Build and program a PIC circuit.
 
 - **HW5** - UART to USB communication.
+
+- **HW6** - Design a PCB in Eagle.

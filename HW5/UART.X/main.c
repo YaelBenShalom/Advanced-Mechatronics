@@ -96,10 +96,6 @@ int main() {
             
             sprintf(m, "Hello!\r\n");
             writeUART1(m);
-            
-            // To check the name of the port: 
-            // Terminal window - ls /dev/tty.*
-            // screen //dev/tty.USB0 115200
         }
     }
 }
