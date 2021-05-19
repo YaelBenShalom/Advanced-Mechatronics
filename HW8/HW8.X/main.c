@@ -1,7 +1,7 @@
 #include<xc.h>           // processor SFR definitions
 #include<sys/attribs.h>  // __ISR macro
 #include<stdio.h>
-#include "i2c_master_noint.h" 
+#include "i2c_master_noint.h"
 
 // DEVCFG0
 #pragma config DEBUG = OFF // disable debugging
@@ -12,10 +12,10 @@
 #pragma config CP = OFF // disable code protect
 
 // DEVCFG1
-#pragma config FNOSC = FRCPLL // use internal oscillator with pll
+#pragma config FNOSC = FRCPLL // use internal pll
 #pragma config FSOSCEN = OFF // disable secondary oscillator
 #pragma config IESO = OFF // disable switching clocks
-#pragma config POSCMOD = OFF // internal RC
+#pragma config POSCMOD = OFF // RC mode
 #pragma config OSCIOFNC = OFF // disable clock output
 #pragma config FPBDIV = DIV_1 // divide sysclk freq by 1 for peripheral bus clock
 #pragma config FCKSM = CSDCMD // disable clock switch and FSCM
@@ -34,14 +34,13 @@
 #pragma config PMDL1WAY = OFF // allow multiple reconfigurations
 #pragma config IOL1WAY = OFF // allow multiple reconfigurations
 
-
-void delay(void);
-void setPin(unsigned char address, unsigned char reg, unsigned char value);
-unsigned char readPin(unsigned char waddress, unsigned char raddress, unsigned char reg);
-
-
+void readUART1(char * string, int maxLength);
+void writeUART1(const char * string);
+void writePin(unsigned char address, unsigned char reg, unsigned char value);
+unsigned char readPin(unsigned char address, unsigned char address2, unsigned char reg, int ack);
+    
 int main() {
-
+    
     __builtin_disable_interrupts(); // disable interrupts while initializing things
 
     // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
@@ -55,16 +54,16 @@ int main() {
 
     // disable JTAG to get pins back
     DDPCONbits.JTAGEN = 0;
-
+    
     // do your TRIS and LAT commands here
-    TRISAbits.TRISA4=0;
-    TRISBbits.TRISB4=1;
-    LATAbits.LATA4=0;
+    TRISBbits.TRISB4 = 1; //B4 is input
+    TRISAbits.TRISA4 = 0; //A4 is output
+    LATAbits.LATA4 = 0; //A4 is low
     
     U1RXRbits.U1RXR = 0b0001; // U1RX is B6
     RPB7Rbits.RPB7R = 0b0001; // U1TX is B7
-
-     // turn on UART3 without an interrupt
+    
+    // turn on UART3 without an interrupt
     U1MODEbits.BRGH = 0; // set baud to NU32_DESIRED_BAUD
     U1BRG = ((48000000 / 115200) / 16) - 1;
 
@@ -76,55 +75,109 @@ int main() {
     U1STAbits.UTXEN = 1;
     U1STAbits.URXEN = 1;
 
-    // enable the UART
+    // enable the uart
     U1MODEbits.ON = 1;
     
-    //I2C chip initialization 
-    i2c_master_setup();
-    setPin(0b01000000,0x00, 0x00);  //set IODIRA
-    setPin(0b01000000,0x01,0xFF);   // set ODIRB
+    __builtin_enable_interrupts();
     
-    while (1) {
-        LATAINV=0b10000;
-        delay();                                //wait half a second 
+    //Initialize I2C
+    i2c_master_setup();
+    //set all A pins to output
+    
+    writePin(0x40, 0x00, 0x00);
+    
+    i2c_master_start();
+    i2c_master_send(0b01000000);  //send address + write bit 0b01000000
+    i2c_master_send(0x00);  //command register address for IODIRA
+    i2c_master_send(0x00);  //set all A pins to output
+    i2c_master_stop();
+    writePin(0x40, 0x14, 0xFF); //turn on pin GPA7
+    //set all B pins to input
+    writePin(0x40, 0x01, 0xFF);
+    i2c_master_start();
+    i2c_master_send(0x40);  //send address + write bit
+    i2c_master_send(0x01);  //command register address for IODIRB
+    i2c_master_send(0xFF);  //set all A pins to output
+    i2c_master_stop();
+    unsigned char value;
+    while(1) {
+        _CP0_SET_COUNT(0);  //reset core timer
+        LATAINV = 0b10000; //toggle pin A4
         
-        if(readPin(0b1000000, 0b1000001, 0x19) == 0){
-            setPin(0b01000000,0x0A,0b10000000); //set OLATA GPA7 pin high
+        while(_CP0_GET_COUNT() < 6000000) { ; }   //0.25s delay
+        
+        value = readPin(0b01000000, 0b01000001, 0x13, 1);
+        value &= 1;
+        char m[100];
+        sprintf(m, "%d\r\n", value);
+        writeUART1(m); //call on writeUART1 to send PIC a message
+        if (value == 0){
+            writePin(0x40, 0x14, 0xFF); //turn on pin GPA7
         }
-        else {
-            setPin(0b01000000,0x0A,0b00000000); //set OLATA GPA7 pin high
+        if (value == 1){
+            writePin(0x40, 0x14, 0x00); //turn off pin GPA7
         }
-    }                
- }
-
-void delay(void){
-    float time = 0.05;
-    float clocks= time/(1.0/24000000.0);
-   
- _CP0_SET_COUNT(0);             //sets core timer to 0 once we push button
-    while(_CP0_GET_COUNT() < clocks){
-        ;
     }
 }
 
-void setPin(unsigned char address, unsigned char reg, unsigned char value){
-    i2c_master_start();
-    i2c_master_send(address);   //send write address
-    i2c_master_send(reg);       //send OLATA register
-    i2c_master_send(value);     // send value
-    i2c_master_stop(); 
-     }
 
-unsigned char readPin(unsigned char waddress, unsigned char raddress, unsigned char reg){
+// Read from UART1
+// block other functions until you get a '\r' or '\n'
+// send the pointer to your char array and the number of elements in the array
+void readUART1(char * message, int maxLength) {
+  char data = 0;
+  int complete = 0, num_bytes = 0;
+  // loop until you get a '\r' or '\n'
+  while (!complete) {
+    if (U1STAbits.URXDA) { // if data is available
+      data = U1RXREG;      // read the data
+      if ((data == '\n') || (data == '\r')) {
+        complete = 1;
+      } else {
+        message[num_bytes] = data;
+        ++num_bytes;
+        // roll over if the array is too small
+        if (num_bytes >= maxLength) {
+          num_bytes = 0;
+        }
+      }
+    }
+  }
+  // end the string
+  message[num_bytes] = '\0';
+}
+
+// Write a character array using UART3
+void writeUART1(const char * string) {
+  while (*string != '\0') {
+    while (U1STAbits.UTXBF) {
+      ; // wait until tx buffer isn't full
+    }
+    U1TXREG = *string;
+    ++string;
+  }
+}
+
+void writePin(unsigned char address, unsigned char reg, unsigned char value) {
     i2c_master_start();
-    i2c_master_send(waddress);
-    i2c_master_send(reg);
-    i2c_master_restart();
-    i2c_master_send(raddress);
-    unsigned char value = i2c_master_recv();
-    i2c_master_ack(1);
+    i2c_master_send(address);  //send address + write bit
+    i2c_master_send(reg);  //send command register address
+    i2c_master_send(value);  //send value
     i2c_master_stop();
-    
+}
+
+unsigned char readPin(unsigned char address, unsigned char address2, unsigned char reg, int ack) {
+    unsigned char value;
+    i2c_master_start();
+    i2c_master_send(address);  //send address + read bit
+    i2c_master_send(reg);  //send command register address
+    i2c_master_restart();   //send a restart
+    i2c_master_send(address2);
+    value = i2c_master_recv();  //receive byte from device
+    char m[100];
+    sprintf(m, "read to here\r\n");
+    writeUART1(m); //call on writeUART1 to send PIC a message
+    i2c_master_ack(ack);  //send acknowledge bit
+    i2c_master_stop();
     return value;
-                
 }
