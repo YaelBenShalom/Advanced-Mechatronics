@@ -12,7 +12,7 @@
 #pragma config CP = OFF // disable code protect
 
 // DEVCFG1
-#pragma config FNOSC = FRCPLL // use internal pll
+#pragma config FNOSC = FRCPLL // use internal oscillator with pll
 #pragma config FSOSCEN = OFF // disable secondary oscillator
 #pragma config IESO = OFF // disable switching clocks
 #pragma config POSCMOD = OFF // RC mode
@@ -38,7 +38,8 @@ void readUART1(char * string, int maxLength);
 void writeUART1(const char * string);
 void writePin(unsigned char address, unsigned char reg, unsigned char value);
 unsigned char readPin(unsigned char address, unsigned char address2, unsigned char reg, int ack);
-    
+void initSPI();
+
 int main() {
     
     __builtin_disable_interrupts(); // disable interrupts while initializing things
@@ -60,6 +61,8 @@ int main() {
     TRISAbits.TRISA4 = 0; //A4 is output
     LATAbits.LATA4 = 0; //A4 is low
     
+    initSPI();
+
     U1RXRbits.U1RXR = 0b0001; // U1RX is B6
     RPB7Rbits.RPB7R = 0b0001; // U1TX is B7
     
@@ -99,6 +102,7 @@ int main() {
     i2c_master_send(0x01);  //command register address for IODIRB
     i2c_master_send(0xFF);  //set all A pins to output
     i2c_master_stop();
+    
     unsigned char value;
     while(1) {
         _CP0_SET_COUNT(0);  //reset core timer
@@ -180,4 +184,26 @@ unsigned char readPin(unsigned char address, unsigned char address2, unsigned ch
     i2c_master_ack(ack);  //send acknowledge bit
     i2c_master_stop();
     return value;
+}
+
+void initSPI() {
+    //Pin B14 has to be SCK1
+    // Turn off analog pins
+    ANSELA = 0; // 1 for analog
+    // Make A0 an output pin for CS
+    TRISAbits.TRISA0 = 0;
+    LATAbits.LATA0 = 1;
+    //Make A1 SDO1
+    RPA1Rbits.RPA1R = 0b0011;
+    //Make B5 SDI1
+    SDI1Rbits.SDI1R = 0b0001;
+    
+    //setup SPI1
+    SPI1CON = 0;                //turn off the SPI module and reset it
+    SPI1BUF;                    //clear the rx buffer by reading from it
+    SPI1BRG = 1000;             //1000 for 12 kHz, 1 for 12 MHz; // baud rate to 10 MHz (SPI4BRG = (4000000/(2*desired)-1))
+    SPI1STATbits.SPIROV = 0;    //clear the overflow bit
+    SPI1CONbits.CKE = 1;        // data changes when clock goes from hi to lo (bc CKP is 0)
+    SPI1CONbits.MSTEN = 1;      // master operation
+    SPI1CONbits.ON = 1;         // turn on SPI
 }
