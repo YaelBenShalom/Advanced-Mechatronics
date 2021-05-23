@@ -12,3 +12,11 @@
 - **HW5** - UART to USB communication.
 
 - **HW6** - Design a PCB in Eagle.
+
+- **HW7** - Output waveforms using an SPI DAC.
+
+- **HW8** - Build the I2C IO expander.
+
+- **HW9** - ST7789 Display.
+
+- **HW10** - Set the color of 4 LEDs.
