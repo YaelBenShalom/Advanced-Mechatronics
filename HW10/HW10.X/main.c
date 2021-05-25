@@ -125,7 +125,7 @@ int main() {
         ws2812b_setColor(color_array, 5);
         
         TMR2 = 0;
-        while(TMR2 < 50000){} // wait to slow down color change
+        while (TMR2 < 50000) {} // wait to slow down color change
     }
 }
 
@@ -155,7 +155,7 @@ void readUART1(char * message, int maxLength) {
     message[num_bytes] = '\0';
 }
 
-// Write a character array using UART3
+// Write a character array using UART1
 void writeUART1(const char * string) {
     while (*string != '\0') {
         while (U1STAbits.UTXBF) {;} // wait until tx buffer isn't full
