@@ -7,26 +7,27 @@
 #include "font.h"
 #include "ST7789.h"
 #include "imu.h"
+#include "ws2812b.h"
 
 // DEVCFG0
-#pragma config DEBUG = OFF // disable debugging
-#pragma config JTAGEN = OFF // disable jtag
+#pragma config DEBUG = OFF      // disable debugging
+#pragma config JTAGEN = OFF     // disable jtag
 #pragma config ICESEL = ICS_PGx1 // use PGED1 and PGEC1
-#pragma config PWP = OFF // disable flash write protect
-#pragma config BWP = OFF // disable boot write protect
-#pragma config CP = OFF // disable code protect
+#pragma config PWP = OFF        // disable flash write protect
+#pragma config BWP = OFF        // disable boot write protect
+#pragma config CP = OFF         // disable code protect
 
 // DEVCFG1
-#pragma config FNOSC = FRCPLL // use internal pll
-#pragma config FSOSCEN = OFF // disable secondary oscillator
-#pragma config IESO = OFF // disable switching clocks
-#pragma config POSCMOD = OFF // RC mode
-#pragma config OSCIOFNC = OFF // disable clock output
-#pragma config FPBDIV = DIV_1 // divide sysclk freq by 1 for peripheral bus clock
-#pragma config FCKSM = CSDCMD // disable clock switch and FSCM
+#pragma config FNOSC = FRCPLL   // use internal pll
+#pragma config FSOSCEN = OFF    // disable secondary oscillator
+#pragma config IESO = OFF       // disable switching clocks
+#pragma config POSCMOD = OFF    // RC mode
+#pragma config OSCIOFNC = OFF   // disable clock output
+#pragma config FPBDIV = DIV_1   // divide sysclk freq by 1 for peripheral bus clock
+#pragma config FCKSM = CSDCMD   // disable clock switch and FSCM
 #pragma config WDTPS = PS1048576 // use largest wdt
-#pragma config WINDIS = OFF // use non-window mode wdt
-#pragma config FWDTEN = OFF // wdt disabled
+#pragma config WINDIS = OFF     // use non-window mode wdt
+#pragma config FWDTEN = OFF     // wdt disabled
 #pragma config FWDTWINSZ = WINSZ_25 // wdt window at 25%
 
 // DEVCFG2 - get the sysclk clock to 48MHz from the 8MHz crystal
@@ -35,12 +36,11 @@
 #pragma config FPLLODIV = DIV_2 // divide clock after FPLLMUL to get 48MHz
 
 // DEVCFG3
-#pragma config USERID = 0 // some 16bit userid, doesn't matter what
-#pragma config PMDL1WAY = OFF // allow multiple reconfigurations
-#pragma config IOL1WAY = OFF // allow multiple reconfigurations
+#pragma config USERID = 0       // some 16bit userid, doesn't matter what
+#pragma config PMDL1WAY = OFF   // allow multiple reconfigurations
+#pragma config IOL1WAY = OFF    // allow multiple reconfigurations
 
 int main() {
-    
     __builtin_disable_interrupts(); // disable interrupts while initializing things
 
     // set the CP0 CONFIG register to indicate that kseg0 is cacheable (0x3)
@@ -56,17 +56,17 @@ int main() {
     DDPCONbits.JTAGEN = 0;
     
     // do your TRIS and LAT commands here
-    TRISBbits.TRISB4 = 1; //B4 is input
-    TRISAbits.TRISA4 = 0; //A4 is output
-    LATAbits.LATA4 = 0; //A4 is low
+    TRISBbits.TRISB4 = 1;   //B4 is input
+    TRISAbits.TRISA4 = 0;   //A4 is output
+    LATAbits.LATA4 = 0;     //A4 is low
     
-    initUART1(); // init UART1
-    initSPI(); // init SPI
-    LCD_init(); // init LCD
+    initUART1();            // init UART1
+    initSPI();              // init SPI
+    LCD_init();             // init LCD
     LCD_clearScreen(BLACK); //clear screen
     
-    i2c_master_setup(); //init i2c
-    imu_setup(); // setup IMU
+    i2c_master_setup();     // init i2c
+    imu_setup();            // setup IMU
         
     __builtin_enable_interrupts();
     
@@ -90,9 +90,9 @@ int main() {
         bar_x(-data_arr[5]);
         bar_y(data_arr[4]);
         
-        delay = _CP0_GET_COUNT(); //remember time
-        float fps = 24000000/delay; //get fps from delay (48M ticks/1 sec * frame/tick)
+        delay = _CP0_GET_COUNT();       //remember time
+        float fps = 24000000/delay;     //get fps from delay (48M ticks/1 sec * frame/tick)
         sprintf(m, "FPS = %.2f", fps);
-        drawString(10, 220, WHITE, m); //write FPS on screen
+        drawString(10, 220, WHITE, m);  //write FPS on screen
     }
 }
