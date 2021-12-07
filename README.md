@@ -1,6 +1,6 @@
-# ME433-AdvancedMechatronics
+# Advanced Mechatronics
 
-## Repository for Advances Mechatronics Homeworks
+A repository for Advances Mechatronics (ME433) Homeworks
 
 ## This repository contains:
 
